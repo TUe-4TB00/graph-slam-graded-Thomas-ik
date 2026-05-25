@@ -13,13 +13,21 @@ def add_pose(graph, initial_estimate):
 
 
     # TODO: Based on the odometry, find the initial estimate for the pose of X(5) and add it to the graph
-    x4 = initial_estimate.atPose2(X(4))
+
+    x3 = initial_estimate.atPose2(X(3))
 
     odom = gtsam.Pose2(2.0, 0.0, math.pi / 2)
+
     graph.add(
-        gtsam.BetweenFactorPose2(X(4), X(5), odom, ODOMETRY_NOISE)
+        gtsam.BetweenFactorPose2(
+            X(3),
+            X(4),
+            odom,
+            ODOMETRY_NOISE
+        )
     )
-    x5 = x4.compose(odom)
-    initial_estimate.insert(X(5), x5)
-    
+
+    x4 = x3.compose(odom)
+    initial_estimate.insert(X(4), x4)
+  
     return graph, initial_estimate
