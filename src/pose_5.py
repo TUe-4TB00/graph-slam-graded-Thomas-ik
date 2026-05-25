@@ -43,20 +43,49 @@ def optimize(graph, initial_estimate):
     return result
 
 def minimize_marginals(graph, initial_estimate, pose_options):
-    #TODO: try different pose and landmark options here, and keep the one with the lowest sum of marginals.
-    best_pose = "a"      # chosen pose option
-    best_landmark = 1    # chosen landmark (1 or 2)
-    pose_5 = pose_options[best_pose]
-    graph, initial_estimate = add_pose(graph, initial_estimate, pose_5)
-    result = optimize(graph, initial_estimate)
-    graph = add_landmark_measurement(graph, result, pose_5, best_landmark)
-    result = optimize(graph, initial_estimate)
+    # TODO: try different pose and landmark options here, and keep the one with the lowest sum of marginals.
 
-    # TODO: Calculate marginal covariances for the relevant variables and visualize the updated factor graph with covariances
-    marginals = []
-    # The sum of the marginals for each landmark can be computed using marginals.marginalCovariance(L(x)).sum()
-    sum_of_marginals = 0
-    return best_pose, best_landmark, sum_of_marginals
+    lowest_sum = float("inf")
+
+    for pose in pose_options:
+        for landmark in [1, 2]:
+
+            test_graph = gtsam.NonlinearFactorGraph(graph)
+            test_initial_estimate = gtsam.Values(initial_estimate)
+
+            pose_5 = pose_options[pose]
+
+            test_graph, test_initial_estimate = add_pose(
+                test_graph,
+                test_initial_estimate,
+                pose_5
+            )
+
+            Result = optimize(test_graph, test_initial_estimate)
+
+            test_graph = add_landmark_measurement(
+                test_graph,
+                Result,
+                pose_5,
+                landmark
+            )
+
+            Result = optimize(test_graph, test_initial_estimate)
+
+            # TODO: Calculate marginal covariances for the relevant variables
+            marginals = gtsam.Marginals(test_graph, Result)
+
+            sum_of_marginals = (
+                marginals.marginalCovariance(L(1)).sum()
+                + marginals.marginalCovariance(L(2)).sum()
+            )
+
+            if sum_of_marginals < lowest_sum:
+                lowest_sum = sum_of_marginals
+                best_pose = pose
+                best_landmark = landmark
+
+    return best_pose, best_landmark, lowest_sum
 
 def minimize_errors(graph, initial_estimate, pose_options):
     #TODO: try different pose and landmark options here, and keep the one with the lowest resulting error.
