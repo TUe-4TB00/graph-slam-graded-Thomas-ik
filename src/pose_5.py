@@ -35,10 +35,12 @@ def add_landmark_measurement(graph, result, pose_5, landmark):
     return graph
 
 def optimize(graph, initial_estimate):
-    # TODO: Initialize the optimizer 
-
+    # TODO: Initialize the optimizer
+    params = gtsam.LevenbergMarquardtParams()
+    optimizzatonnn = gtsam.LevenbergMarquardtOptimizer(graph, initial_estimate, params)
 
     # TODO: Perform the optimization and print the result
+    result = optimizzatonnn.optimize()
 
     return result
 
@@ -88,17 +90,47 @@ def minimize_marginals(graph, initial_estimate, pose_options):
     return best_pose, best_landmark, lowest_sum
 
 def minimize_errors(graph, initial_estimate, pose_options):
-    #TODO: try different pose and landmark options here, and keep the one with the lowest resulting error.
-    best_pose = "a"      # chosen pose option
-    best_landmark = 1    # chosen landmark (1 or 2)
-    pose_5 = pose_options[best_pose]
-    graph, initial_estimate = add_pose(graph, initial_estimate, pose_5)
-    result = optimize(graph, initial_estimate)
-    graph = add_landmark_measurement(graph, result, pose_5, best_landmark)
-    result = optimize(graph, initial_estimate)
+    # TODO: try different pose and landmark options here, and keep the one with the lowest resulting error.
 
-    # TODO: create a list of errors (each index corresponds to a pose) and add the error of each pose to the list
-    list_of_errors = []
-    # TODO: compute the sum of the errors and return it along with the best pose and landmark
-    sum_of_errors = 0
-    return best_pose, best_landmark, sum_of_errors 
+    lowest_error = float("inf")
+
+    for pose in pose_options:
+        for landmark in [1, 2]:
+
+            test_graph = gtsam.NonlinearFactorGraph(graph)
+            test_initial_estimate = gtsam.Values(initial_estimate)
+
+            pose_5 = pose_options[pose]
+
+            test_graph, test_initial_estimate = add_pose(
+                test_graph,
+                test_initial_estimate,
+                pose_5
+            )
+
+            result = optimize(test_graph, test_initial_estimate)
+
+            test_graph = add_landmark_measurement(
+                test_graph,
+                result,
+                pose_5,
+                landmark
+            )
+
+            result = optimize(test_graph, test_initial_estimate)
+
+            # collect errors per pose
+            list_of_errors = []
+
+            for key in [X(1), X(2), X(3)]:
+                err = result.atPose2(key).x()**2 + result.atPose2(key).y()**2
+                list_of_errors.append(err)
+
+            sum_of_errors = sum(list_of_errors)
+
+            if sum_of_errors < lowest_error:
+                lowest_error = sum_of_errors
+                best_pose = pose
+                best_landmark = landmark
+
+    return best_pose, best_landmark, lowest_error
