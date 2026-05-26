@@ -8,7 +8,6 @@ ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))  # 
 MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.05, 0.1]))  # (bearing, range)
 
 def add_landmark_measurement(graph, initial_estimate, result):
-    # Determine the correct rotation (bearing) and distance from X(4) to L(2) 
     rotation = 67.5
     distance = math.sqrt(8 - 4 * math.sqrt(2))
     graph.add(gtsam.BearingRangeFactor2D(X(4), L(2), gtsam.Rot2.fromDegrees(rotation), distance, MEASUREMENT_NOISE))

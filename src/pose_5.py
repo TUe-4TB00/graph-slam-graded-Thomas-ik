@@ -8,7 +8,7 @@ ODOMETRY_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.2, 0.2, 0.1]))  # 
 MEASUREMENT_NOISE = gtsam.noiseModel.Diagonal.Sigmas(np.array([0.05, 0.1]))  # (bearing, range)
 
 def add_pose(graph, initial_estimate, pose_5):
-    # Adding the initial estimate for the 5th pose using our helper function `add_pose_from_global` which also adds the odometry factor between X(4) and X(5).
+    
     pose_4 = initial_estimate.atPose2(X(4))
     graph, initial_estimate = add_pose_from_global(
         graph=graph,
@@ -51,40 +51,32 @@ def minimize_marginals(graph, initial_estimate, pose_options):
     best_pose = None
     best_landmark = None
 
-    # Run optimization on the base graph first to get the correct 
-    # landmark locations needed by the measurement helper function
-    baseline_result = optimize(graph, initial_estimate)
+    baselineResult = optimize(graph, initial_estimate)
 
     for pose in pose_options:
         for landmark in [1, 2]:
 
-            test_graph = gtsam.NonlinearFactorGraph(graph)
-            test_initial_estimate = gtsam.Values(initial_estimate)
+            Tgraph = gtsam.NonlinearFactorGraph(graph)
+            testinitial_estimate = gtsam.Values(initial_estimate)
 
             pose_5 = pose_options[pose]
 
-            # 1. Add the 5th pose to the graph and initial estimate
-            test_graph, test_initial_estimate = add_pose(
-                test_graph,
-                test_initial_estimate,
+            Tgraph, testinitial_estimate = add_pose(
+                Tgraph,
+                testinitial_estimate,
                 pose_5
             )
-
-            # 2. Add the landmark measurement, passing baseline_result to fulfill the helper function's expectations
-            test_graph = add_landmark_measurement(
-                test_graph,
-                baseline_result,
+            
+            Tgraph = add_landmark_measurement(
+                Tgraph,
+                baselineResult,
                 pose_5,
                 landmark
             )
 
-            # 3. Perform final optimization on the fully built graph
-            Result = optimize(test_graph, test_initial_estimate)
+            Tresult = optimize(Tgraph, testinitial_estimate)
+            marginals = gtsam.Marginals(Tgraph, Tresult)
 
-            # Calculate marginal covariances for the relevant variables
-            marginals = gtsam.Marginals(test_graph, Result)
-
-            # Sum the variance diagonals using .trace()
             sum_of_marginals = (
                 marginals.marginalCovariance(L(1)).trace()
                 + marginals.marginalCovariance(L(2)).trace()
