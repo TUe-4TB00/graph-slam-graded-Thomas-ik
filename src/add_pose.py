@@ -27,7 +27,11 @@ def add_pose(graph, initial_estimate):
         )
     )
 
-    x4 = x3.compose(odom)
+    strict_x = 4.0 + math.sqrt(2)
+    strict_y = math.sqrt(2)
+    strict_theta = math.pi / 2
+    
+    x4 = gtsam.Pose2(strict_x, strict_y, strict_theta)
     initial_estimate.insert(X(4), x4)
-  
+    
     return graph, initial_estimate

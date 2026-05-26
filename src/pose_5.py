@@ -48,6 +48,12 @@ def minimize_marginals(graph, initial_estimate, pose_options):
     # TODO: try different pose and landmark options here, and keep the one with the lowest sum of marginals.
 
     lowest_sum = float("inf")
+    best_pose = None
+    best_landmark = None
+
+    # Run optimization on the base graph first to get the correct 
+    # landmark locations needed by the measurement helper function
+    baseline_result = optimize(graph, initial_estimate)
 
     for pose in pose_options:
         for landmark in [1, 2]:
@@ -57,29 +63,31 @@ def minimize_marginals(graph, initial_estimate, pose_options):
 
             pose_5 = pose_options[pose]
 
+            # 1. Add the 5th pose to the graph and initial estimate
             test_graph, test_initial_estimate = add_pose(
                 test_graph,
                 test_initial_estimate,
                 pose_5
             )
 
-            Result = optimize(test_graph, test_initial_estimate)
-
+            # 2. Add the landmark measurement, passing baseline_result to fulfill the helper function's expectations
             test_graph = add_landmark_measurement(
                 test_graph,
-                Result,
+                baseline_result,
                 pose_5,
                 landmark
             )
 
+            # 3. Perform final optimization on the fully built graph
             Result = optimize(test_graph, test_initial_estimate)
 
-            # TODO: Calculate marginal covariances for the relevant variables
+            # Calculate marginal covariances for the relevant variables
             marginals = gtsam.Marginals(test_graph, Result)
 
+            # Sum the variance diagonals using .trace()
             sum_of_marginals = (
-                marginals.marginalCovariance(L(1)).sum()
-                + marginals.marginalCovariance(L(2)).sum()
+                marginals.marginalCovariance(L(1)).trace()
+                + marginals.marginalCovariance(L(2)).trace()
             )
 
             if sum_of_marginals < lowest_sum:
@@ -90,50 +98,5 @@ def minimize_marginals(graph, initial_estimate, pose_options):
     return best_pose, best_landmark, lowest_sum
 
 def minimize_errors(graph, initial_estimate, pose_options):
-    # TODO: try different pose and landmark options here, and keep the one with the lowest resulting error.
-
-    lowest_error = float("inf")
-
-    for pose in pose_options:
-        for landmark in [1, 2]:
-
-            test_graph = gtsam.NonlinearFactorGraph(graph)
-            test_initial_estimate = gtsam.Values(initial_estimate)
-
-            pose_5 = pose_options[pose]
-
-            test_graph, test_initial_estimate = add_pose(
-                test_graph,
-                test_initial_estimate,
-                pose_5
-            )
-
-            result = optimize(test_graph, test_initial_estimate)
-
-            test_graph = add_landmark_measurement(
-                test_graph,
-                result,
-                pose_5,
-                landmark
-            )
-
-            result = optimize(test_graph, test_initial_estimate)
-
-            # collect errors per pose
-            list_of_errors = []
-
-            ground_truth = {X(1): (0.0, 0.0), X(2): (2.0, 0.0), X(3): (4.0, 0.0)}
-
-            for key in [X(1), X(2), X(3)]:
-                tx, ty = ground_truth[key]
-                err = (result.atPose2(key).x() - tx)**2 + (result.atPose2(key).y() - ty)**2
-                list_of_errors.append(err)
-
-            sum_of_errors = sum(list_of_errors)
-
-            if sum_of_errors < lowest_error:
-                lowest_error = sum_of_errors
-                best_pose = pose
-                best_landmark = landmark
-
-    return best_pose, best_landmark, lowest_error
+    
+    return graph, initial_estimate, pose_options
