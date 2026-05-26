@@ -122,8 +122,11 @@ def minimize_errors(graph, initial_estimate, pose_options):
             # collect errors per pose
             list_of_errors = []
 
+            ground_truth = {X(1): (0.0, 0.0), X(2): (2.0, 0.0), X(3): (4.0, 0.0)}
+
             for key in [X(1), X(2), X(3)]:
-                err = result.atPose2(key).x()**2 + result.atPose2(key).y()**2
+                tx, ty = ground_truth[key]
+                err = (result.atPose2(key).x() - tx)**2 + (result.atPose2(key).y() - ty)**2
                 list_of_errors.append(err)
 
             sum_of_errors = sum(list_of_errors)

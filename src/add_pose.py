@@ -16,7 +16,7 @@ def add_pose(graph, initial_estimate):
 
     x3 = initial_estimate.atPose2(X(3))
 
-    odom = gtsam.Pose2(2.0, 0.0, math.pi / 2)
+    odom = gtsam.Pose2(math.sqrt(2), math.sqrt(2), math.pi / 2)
 
     graph.add(
         gtsam.BetweenFactorPose2(
